@@ -1,7 +1,4 @@
 # app/schemas/schemas.py
-# ─────────────────────────────────────────────────────────────────────────────
-# Updated schemas — includes latitude/longitude on Provider and auth endpoints
-# ─────────────────────────────────────────────────────────────────────────────
 
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
@@ -35,8 +32,8 @@ class ProviderRegister(BaseModel):
     phone               : str
     password            : str       = Field(..., min_length=6)
     location            : Optional[str] = None
-    latitude            : Optional[float] = None   # NEW
-    longitude           : Optional[float] = None   # NEW
+    latitude            : Optional[float] = None
+    longitude           : Optional[float] = None
     category_id         : int
     years_of_experience : int = 0
     description         : Optional[str] = None
@@ -89,22 +86,23 @@ class ProviderOut(BaseModel):
     average_rating      : float
     total_reviews       : int
     location            : Optional[str]
-    latitude            : Optional[float]   # NEW
-    longitude           : Optional[float]   # NEW
-    # distance_km is added dynamically by the search endpoint — not in DB
+    latitude            : Optional[float]
+    longitude           : Optional[float]
     distance_km         : Optional[float] = None
-    created_at          : datetime
-    user                : UserOut
-    category            : CategoryOut
+
+    # NEW: availability status field
+    availability_status : str = "available"
+
+    created_at : datetime
+    user       : UserOut
+    category   : CategoryOut
 
     class Config:
         from_attributes = True
 
 
-from app.models.models import ProviderStatus
-
 class ProviderStatusUpdate(BaseModel):
-    status : ProviderStatus
+    status : str
     reason : Optional[str] = None
 
 
@@ -166,8 +164,8 @@ class ReviewOut(BaseModel):
 
 
 class ComplaintCreate(BaseModel):
-    booking_id  : int
-    message     : str
+    booking_id : int
+    message    : str
 
 
 class ComplaintResolve(BaseModel):

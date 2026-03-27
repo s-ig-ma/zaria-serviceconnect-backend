@@ -1,7 +1,4 @@
 # app/models/models.py
-# ─────────────────────────────────────────────────────────────────────────────
-# DATABASE TABLES — updated with latitude/longitude for location-based search
-# ─────────────────────────────────────────────────────────────────────────────
 
 from sqlalchemy import (
     Column, Integer, String, Float, Boolean,
@@ -26,6 +23,18 @@ class ProviderStatus(str, enum.Enum):
     suspended = "suspended"
 
 
+class AvailabilityStatus(str, enum.Enum):
+    """
+    Provider availability — updated automatically by the booking system:
+      available → provider is ready to accept new bookings
+      busy      → provider has accepted a booking and is currently working
+      offline   → provider has manually set themselves as unavailable
+    """
+    available = "available"
+    busy      = "busy"
+    offline   = "offline"
+
+
 class BookingStatus(str, enum.Enum):
     pending   = "pending"
     accepted  = "accepted"
@@ -48,7 +57,7 @@ class User(Base):
     email           = Column(String(150), unique=True, index=True, nullable=False)
     phone           = Column(String(20), nullable=False)
     hashed_password = Column(String(255), nullable=False)
-    location        = Column(String(200), nullable=True)   # text description
+    location        = Column(String(200), nullable=True)
     role            = Column(Enum(UserRole), default=UserRole.resident, nullable=False)
     is_active       = Column(Boolean, default=True)
     profile_photo   = Column(String(255), nullable=True)
@@ -87,11 +96,19 @@ class Provider(Base):
     status              = Column(Enum(ProviderStatus), default=ProviderStatus.pending)
     average_rating      = Column(Float, default=0.0)
     total_reviews       = Column(Integer, default=0)
-    location            = Column(String(200), nullable=True)   # text description
+    location            = Column(String(200), nullable=True)
+    latitude            = Column(Float, nullable=True)
+    longitude           = Column(Float, nullable=True)
 
-    # NEW: GPS coordinates for location-based search
-    latitude            = Column(Float, nullable=True)   # e.g. 11.0801
-    longitude           = Column(Float, nullable=True)   # e.g. 7.7169
+    # NEW: Availability status
+    # Default = available when provider registers
+    # Changes automatically when they accept/complete bookings
+    availability_status = Column(
+        String(20),
+        default  = "available",
+        nullable = False,
+        server_default = "available"
+    )
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
