@@ -34,7 +34,8 @@ class ProviderRegister(BaseModel):
     location            : Optional[str] = None
     latitude            : Optional[float] = None
     longitude           : Optional[float] = None
-    category_id         : int
+    category_id         : Optional[int] = None
+    service_name        : Optional[str] = None
     years_of_experience : int = 0
     description         : Optional[str] = None
 
@@ -79,7 +80,8 @@ class CategoryOut(BaseModel):
 class ProviderOut(BaseModel):
     id                  : int
     user_id             : int
-    category_id         : int
+    category_id         : Optional[int]
+    service_name        : Optional[str]
     description         : Optional[str]
     years_of_experience : int
     status              : str
@@ -95,7 +97,7 @@ class ProviderOut(BaseModel):
 
     created_at : datetime
     user       : UserOut
-    category   : CategoryOut
+    category   : Optional[CategoryOut] = None
 
     class Config:
         from_attributes = True

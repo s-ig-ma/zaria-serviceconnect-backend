@@ -89,7 +89,8 @@ class Provider(Base):
 
     id                  = Column(Integer, primary_key=True, index=True)
     user_id             = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
-    category_id         = Column(Integer, ForeignKey("categories.id"), nullable=False)
+    category_id         = Column(Integer, ForeignKey("categories.id"), nullable=True)
+    service_name        = Column(String(150), nullable=True)
     description         = Column(Text, nullable=True)
     years_of_experience = Column(Integer, default=0)
     id_document_path    = Column(String(255), nullable=True)

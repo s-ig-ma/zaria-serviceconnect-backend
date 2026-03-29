@@ -58,12 +58,13 @@ def search_providers(
     results = (
         db.query(Provider)
         .join(Provider.user)
-        .join(Provider.category)
+        .outerjoin(Provider.category)
         .filter(
             Provider.status == ProviderStatus.approved,
             or_(
                 User.name.ilike(search_term),
                 Category.name.ilike(search_term),
+                Provider.service_name.ilike(search_term),
                 Provider.description.ilike(search_term),
                 Provider.location.ilike(search_term),
             )

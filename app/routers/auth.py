@@ -9,10 +9,22 @@ from app.core.database import get_db
 from app.core.security import hash_password, verify_password, create_access_token
 from app.core.config import settings
 from app.core.dependencies import get_current_user
-from app.models.models import User, Provider, UserRole
+from app.models.models import User, Provider, UserRole, Category
 from app.schemas.schemas import ResidentRegister, LoginRequest, Token, UserOut, MessageResponse
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+
+def validate_password_length(password: str):
+    password_bytes = password.encode("utf-8")
+    if len(password_bytes) > 72:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Password is too long for bcrypt ({len(password_bytes)} bytes received). "
+                "Please use a shorter password."
+            )
+        )
 
 
 @router.post("/register/resident", response_model=MessageResponse, status_code=201)
@@ -21,6 +33,8 @@ def register_resident(data: ResidentRegister, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.email == data.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered.")
+
+    validate_password_length(data.password)
 
     new_user = User(
         name=data.name,
@@ -42,7 +56,8 @@ async def register_provider(
     phone: str = Form(...),
     password: str = Form(...),
     location: str = Form(None),
-    category_id: int = Form(...),
+    category_id: int | None = Form(None),
+    service_name: str | None = Form(None),
     years_of_experience: int = Form(0),
     description: str = Form(None),
     id_document: UploadFile = File(...),
@@ -55,6 +70,20 @@ async def register_provider(
     existing = db.query(User).filter(User.email == email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered.")
+
+    validate_password_length(password)
+
+    clean_service_name = service_name.strip() if service_name else None
+    if category_id is None and not clean_service_name:
+        raise HTTPException(
+            status_code=400,
+            detail="Please select a category or enter a custom service name."
+        )
+
+    if category_id is not None:
+        category = db.query(Category).filter(Category.id == category_id).first()
+        if not category:
+            raise HTTPException(status_code=400, detail="Selected category was not found.")
 
     content = await id_document.read()
     if len(content) > settings.MAX_UPLOAD_SIZE:
@@ -77,7 +106,9 @@ async def register_provider(
     db.flush()
 
     new_provider = Provider(
-        user_id=new_user.id, category_id=category_id,
+        user_id=new_user.id,
+        category_id=category_id,
+        service_name=clean_service_name,
         years_of_experience=years_of_experience,
         description=description, id_document_path=file_path, location=location,
     )
