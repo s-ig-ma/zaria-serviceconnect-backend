@@ -17,7 +17,7 @@ from app.utils.uploads import save_upload
 router = APIRouter(prefix="/providers", tags=["Providers"])
 
 
-def haversine_distance(lat1, lon1, lat2, lon2):
+def haversine_distance(lat1, lon1, lat2, lon2, should_round=True):
     radius = 6371.0
     lat1_r = math.radians(lat1)
     lat2_r = math.radians(lat2)
@@ -27,22 +27,28 @@ def haversine_distance(lat1, lon1, lat2, lon2):
         math.sin(dlat / 2) ** 2
         + math.cos(lat1_r) * math.cos(lat2_r) * math.sin(dlon / 2) ** 2
     )
-    return round(radius * (2 * math.atan2(math.sqrt(value), math.sqrt(1 - value))), 2)
+    distance = radius * (2 * math.atan2(math.sqrt(value), math.sqrt(1 - value)))
+    return round(distance, 2) if should_round else distance
 
 
 def _sort_by_distance(providers, user_lat, user_lon):
     if user_lat is not None and user_lon is not None:
         for provider in providers:
             if provider.latitude is not None and provider.longitude is not None:
-                provider.distance_km = haversine_distance(
-                    user_lat, user_lon, provider.latitude, provider.longitude
+                raw_distance = haversine_distance(
+                    user_lat, user_lon, provider.latitude, provider.longitude, should_round=False
                 )
+                provider.distance_km = round(raw_distance, 2)
+                provider._distance_sort_value = raw_distance
             else:
                 provider.distance_km = 99999.0
-        providers.sort(key=lambda provider: provider.distance_km or 99999.0)
+                provider._distance_sort_value = 99999.0
+        providers.sort(key=lambda provider: getattr(provider, "_distance_sort_value", 99999.0))
         for provider in providers:
             if provider.distance_km == 99999.0:
                 provider.distance_km = None
+            if hasattr(provider, "_distance_sort_value"):
+                delattr(provider, "_distance_sort_value")
     else:
         providers.sort(key=lambda provider: provider.average_rating, reverse=True)
         for provider in providers:

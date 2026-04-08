@@ -50,6 +50,13 @@ class ComplaintStatus(str, enum.Enum):
     resolved  = "resolved"
 
 
+class ComplaintActionType(str, enum.Enum):
+    warning = "warning"
+    provider_suspension = "provider_suspension"
+    account_deactivation = "account_deactivation"
+    note = "note"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -71,6 +78,27 @@ class User(Base):
     reviews          = relationship("Review", back_populates="resident")
     complaints       = relationship("Complaint", back_populates="user")
     provider_profile = relationship("Provider", back_populates="user", uselist=False)
+    sent_messages    = relationship(
+        "Message",
+        back_populates="sender",
+        foreign_keys="Message.sender_user_id",
+    )
+    received_messages = relationship(
+        "Message",
+        back_populates="recipient",
+        foreign_keys="Message.recipient_user_id",
+    )
+    notifications = relationship("Notification", back_populates="user")
+    complaint_actions_created = relationship(
+        "ComplaintAction",
+        back_populates="admin_user",
+        foreign_keys="ComplaintAction.admin_user_id",
+    )
+    complaint_actions_received = relationship(
+        "ComplaintAction",
+        back_populates="target_user",
+        foreign_keys="ComplaintAction.target_user_id",
+    )
 
 
 class Category(Base):
@@ -182,3 +210,52 @@ class Complaint(Base):
     booking  = relationship("Booking", back_populates="complaint")
     user     = relationship("User", back_populates="complaints")
     provider = relationship("Provider", back_populates="complaints")
+    messages = relationship("Message", back_populates="complaint")
+    actions = relationship("ComplaintAction", back_populates="complaint")
+
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    complaint_id = Column(Integer, ForeignKey("complaints.id"), nullable=True)
+    sender_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    recipient_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    content = Column(Text, nullable=False)
+    is_read = Column(Boolean, default=False, nullable=False, server_default="0")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    complaint = relationship("Complaint", back_populates="messages")
+    sender = relationship("User", back_populates="sent_messages", foreign_keys=[sender_user_id])
+    recipient = relationship("User", back_populates="received_messages", foreign_keys=[recipient_user_id])
+
+
+class ComplaintAction(Base):
+    __tablename__ = "complaint_actions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    complaint_id = Column(Integer, ForeignKey("complaints.id"), nullable=False)
+    admin_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    target_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    action_type = Column(Enum(ComplaintActionType), nullable=False)
+    note = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    complaint = relationship("Complaint", back_populates="actions")
+    admin_user = relationship("User", back_populates="complaint_actions_created", foreign_keys=[admin_user_id])
+    target_user = relationship("User", back_populates="complaint_actions_received", foreign_keys=[target_user_id])
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    title = Column(String(150), nullable=False)
+    message = Column(Text, nullable=False)
+    type = Column(String(50), nullable=False, default="general", server_default="general")
+    related_id = Column(Integer, nullable=True)
+    is_read = Column(Boolean, default=False, nullable=False, server_default="0")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="notifications")

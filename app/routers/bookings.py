@@ -6,6 +6,7 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_admin, get_current_user
 from app.models.models import Booking, BookingStatus, Provider, User
 from app.schemas.schemas import BookingCreate, BookingDetailOut, BookingStatusUpdate, MessageResponse
+from app.utils.communication import create_notification, get_provider_user_id
 
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
@@ -69,6 +70,16 @@ def create_booking(
         status=BookingStatus.pending,
     )
     db.add(booking)
+    provider_user_id = get_provider_user_id(provider)
+    if provider_user_id is not None:
+        create_notification(
+            db,
+            user_id=provider_user_id,
+            title="New booking request",
+            message=f"{current_user.name} sent you a new booking request.",
+            notification_type="booking",
+            related_id=booking.id,
+        )
     db.commit()
     db.refresh(booking)
     return booking
@@ -178,6 +189,44 @@ def update_booking_status(
             other_open = count_open_bookings(db, provider.id, exclude_booking_id=booking_id)
             if other_open == 0:
                 provider.availability_status = "available"
+
+    provider_user_id = get_provider_user_id(provider)
+    if requested_status == "completion_requested":
+        create_notification(
+            db,
+            user_id=booking.resident_id,
+            title="Completion requested",
+            message="Your provider has requested job completion confirmation.",
+            notification_type="booking",
+            related_id=booking.id,
+        )
+    elif requested_status == "completed" and provider_user_id is not None:
+        create_notification(
+            db,
+            user_id=provider_user_id,
+            title="Job completed",
+            message="The resident confirmed satisfaction and marked the job as completed.",
+            notification_type="booking",
+            related_id=booking.id,
+        )
+    elif requested_status == "accepted":
+        create_notification(
+            db,
+            user_id=booking.resident_id,
+            title="Booking accepted",
+            message="Your booking request was accepted by the provider.",
+            notification_type="booking",
+            related_id=booking.id,
+        )
+    elif requested_status == "declined":
+        create_notification(
+            db,
+            user_id=booking.resident_id,
+            title="Booking declined",
+            message="Your booking request was declined by the provider.",
+            notification_type="booking",
+            related_id=booking.id,
+        )
 
     db.commit()
     db.refresh(booking)

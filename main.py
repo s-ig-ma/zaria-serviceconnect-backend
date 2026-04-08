@@ -15,7 +15,7 @@ from app.models.models import Base
 from app.utils.seed import run_seed
 
 # Import all routers
-from app.routers import auth, categories, providers, bookings, reviews, users
+from app.routers import auth, categories, providers, bookings, reviews, users, messages, notifications
 from app.routers import complaints   # ← NEW: complaint system
 
 # Create all database tables (including the new complaints table)
@@ -62,6 +62,8 @@ app.include_router(bookings.router)
 app.include_router(reviews.router)
 app.include_router(complaints.router)   # ← NEW
 app.include_router(users.router)
+app.include_router(messages.router)
+app.include_router(notifications.router)
 
 
 # ── On startup: create tables and seed initial data ───────────────────────────
