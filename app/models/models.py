@@ -38,6 +38,7 @@ class AvailabilityStatus(str, enum.Enum):
 class BookingStatus(str, enum.Enum):
     pending   = "pending"
     accepted  = "accepted"
+    completion_requested = "completion_requested"
     completed = "completed"
     cancelled = "cancelled"
     declined  = "declined"
@@ -58,6 +59,7 @@ class User(Base):
     phone           = Column(String(20), nullable=False)
     hashed_password = Column(String(255), nullable=False)
     location        = Column(String(200), nullable=True)
+    home_address    = Column(String(255), nullable=True)
     role            = Column(Enum(UserRole), default=UserRole.resident, nullable=False)
     is_active       = Column(Boolean, default=True)
     profile_photo   = Column(String(255), nullable=True)
@@ -93,7 +95,11 @@ class Provider(Base):
     service_name        = Column(String(150), nullable=True)
     description         = Column(Text, nullable=True)
     years_of_experience = Column(Integer, default=0)
+    passport_photo_path = Column(String(255), nullable=True)
     id_document_path    = Column(String(255), nullable=True)
+    skill_proof_path    = Column(String(255), nullable=True)
+    has_shop_in_zaria   = Column(Boolean, default=False)
+    shop_address        = Column(String(255), nullable=True)
     status              = Column(Enum(ProviderStatus), default=ProviderStatus.pending)
     average_rating      = Column(Float, default=0.0)
     total_reviews       = Column(Integer, default=0)
@@ -131,6 +137,7 @@ class Booking(Base):
     service_description = Column(Text, nullable=False)
     scheduled_date      = Column(String(50), nullable=False)
     scheduled_time      = Column(String(20), nullable=False)
+    service_address     = Column(String(255), nullable=True)
     status              = Column(Enum(BookingStatus), default=BookingStatus.pending)
     notes               = Column(Text, nullable=True)
     provider_notes      = Column(Text, nullable=True)

@@ -24,6 +24,7 @@ class ResidentRegister(BaseModel):
     phone    : str      = Field(..., min_length=7, max_length=20)
     password : str      = Field(..., min_length=6)
     location : Optional[str] = None
+    home_address : Optional[str] = None
 
 
 class ProviderRegister(BaseModel):
@@ -51,6 +52,7 @@ class UserOut(BaseModel):
     email         : str
     phone         : str
     location      : Optional[str]
+    home_address  : Optional[str]
     role          : str
     is_active     : bool
     profile_photo : Optional[str]
@@ -91,6 +93,11 @@ class ProviderOut(BaseModel):
     latitude            : Optional[float]
     longitude           : Optional[float]
     distance_km         : Optional[float] = None
+    passport_photo_path : Optional[str]
+    id_document_path    : Optional[str]
+    skill_proof_path    : Optional[str]
+    has_shop_in_zaria   : bool = False
+    shop_address        : Optional[str]
 
     # NEW: availability status field
     availability_status : str = "available"
@@ -113,6 +120,7 @@ class BookingCreate(BaseModel):
     service_description : str
     scheduled_date      : str
     scheduled_time      : str
+    service_address     : Optional[str] = None
     notes               : Optional[str] = None
 
 
@@ -128,6 +136,7 @@ class BookingOut(BaseModel):
     service_description : str
     scheduled_date      : str
     scheduled_time      : str
+    service_address     : Optional[str]
     status              : str
     notes               : Optional[str]
     provider_notes      : Optional[str]
@@ -193,3 +202,10 @@ class ComplaintOut(BaseModel):
 class MessageResponse(BaseModel):
     message : str
     success : bool = True
+
+
+class ResidentProfileUpdate(BaseModel):
+    name         : Optional[str] = None
+    phone        : Optional[str] = None
+    location     : Optional[str] = None
+    home_address : Optional[str] = None
