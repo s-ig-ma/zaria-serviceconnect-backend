@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "uploads/documents"
     MAX_UPLOAD_SIZE: int = 5 * 1024 * 1024  # 5 MB
 
+    # Firebase Cloud Messaging
+    FIREBASE_SERVICE_ACCOUNT_PATH: str | None = None
+
     class Config:
         env_file = ".env"
 

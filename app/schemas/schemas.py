@@ -110,6 +110,13 @@ class ProviderOut(BaseModel):
         from_attributes = True
 
 
+class AdminUserDetailOut(UserOut):
+    provider_profile: Optional[ProviderOut] = None
+
+    class Config:
+        from_attributes = True
+
+
 class ProviderStatusUpdate(BaseModel):
     status : str
     reason : Optional[str] = None

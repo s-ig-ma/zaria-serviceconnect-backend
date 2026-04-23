@@ -1,4 +1,5 @@
 from app.models.models import Complaint, Notification, Provider, User
+from app.utils.push_notifications import send_push_to_user
 
 
 def create_notification(
@@ -18,6 +19,18 @@ def create_notification(
         related_id=related_id,
     )
     db.add(notification)
+    db.flush()
+    send_push_to_user(
+        db,
+        user_id=user_id,
+        title=title,
+        message=message,
+        data={
+            "type": notification_type,
+            "related_id": related_id,
+            "notification_id": notification.id,
+        },
+    )
     return notification
 
 

@@ -60,3 +60,12 @@ class NotificationOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class DeviceTokenRegister(BaseModel):
+    token: str = Field(..., min_length=20)
+    device_name: Optional[str] = None
+
+
+class DeviceTokenRemove(BaseModel):
+    token: str = Field(..., min_length=20)

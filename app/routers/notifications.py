@@ -2,11 +2,12 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
-from app.models.models import Notification, User
-from app.schemas.communication_schemas import NotificationOut
+from app.models.models import DeviceToken, Notification, User
+from app.schemas.communication_schemas import DeviceTokenRegister, DeviceTokenRemove, NotificationOut
 from app.schemas.schemas import MessageResponse
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
@@ -55,3 +56,51 @@ def mark_all_notifications_read(
         notification.is_read = True
     db.commit()
     return {"message": "All notifications marked as read.", "success": True}
+
+
+@router.post("/devices/register", response_model=MessageResponse)
+def register_device_token(
+    payload: DeviceTokenRegister,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    token_value = payload.token.strip()
+    device_token = db.query(DeviceToken).filter(DeviceToken.token == token_value).first()
+
+    if not device_token:
+        device_token = DeviceToken(
+            user_id=current_user.id,
+            token=token_value,
+            platform="android",
+            device_name=(payload.device_name or "").strip() or None,
+            is_active=True,
+        )
+        db.add(device_token)
+    else:
+        device_token.user_id = current_user.id
+        device_token.platform = "android"
+        device_token.device_name = (payload.device_name or "").strip() or None
+        device_token.is_active = True
+        device_token.last_seen_at = func.now()
+
+    db.commit()
+    return {"message": "Device token registered successfully.", "success": True}
+
+
+@router.post("/devices/unregister", response_model=MessageResponse)
+def unregister_device_token(
+    payload: DeviceTokenRemove,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    device_token = (
+        db.query(DeviceToken)
+        .filter(DeviceToken.token == payload.token.strip(), DeviceToken.user_id == current_user.id)
+        .first()
+    )
+    if device_token:
+        db.delete(device_token)
+        db.commit()
+        return {"message": "Device token removed successfully.", "success": True}
+
+    return {"message": "Device token was already removed.", "success": True}

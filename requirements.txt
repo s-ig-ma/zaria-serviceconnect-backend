@@ -8,3 +8,4 @@ python-multipart==0.0.9
 aiofiles==23.2.1
 pydantic[email]==2.7.1
 pydantic-settings==2.2.1
+firebase-admin==6.8.0

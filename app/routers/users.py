@@ -8,7 +8,7 @@ from typing import List
 from app.core.database import get_db
 from app.core.dependencies import get_current_admin, get_current_user
 from app.models.models import User
-from app.schemas.schemas import MessageResponse, ResidentProfileUpdate, UserOut
+from app.schemas.schemas import AdminUserDetailOut, MessageResponse, ResidentProfileUpdate, UserOut
 from app.utils.uploads import save_upload
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -65,7 +65,7 @@ def admin_get_all_users(
     return db.query(User).all()
 
 
-@router.get("/admin/{user_id}", response_model=UserOut)
+@router.get("/admin/{user_id}", response_model=AdminUserDetailOut)
 def admin_get_user(
     user_id: int,
     db: Session = Depends(get_db),
