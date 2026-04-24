@@ -1,5 +1,11 @@
+import logging
+
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.models.models import Complaint, Notification, Provider, User
 from app.utils.push_notifications import send_push_to_user
+
+logger = logging.getLogger(__name__)
 
 
 def create_notification(
@@ -18,20 +24,29 @@ def create_notification(
         type=notification_type,
         related_id=related_id,
     )
-    db.add(notification)
-    db.flush()
-    send_push_to_user(
-        db,
-        user_id=user_id,
-        title=title,
-        message=message,
-        data={
-            "type": notification_type,
-            "related_id": related_id,
-            "notification_id": notification.id,
-        },
-    )
-    return notification
+
+    try:
+        with db.begin_nested():
+            db.add(notification)
+            db.flush()
+            send_push_to_user(
+                db,
+                user_id=user_id,
+                title=title,
+                message=message,
+                data={
+                    "type": notification_type,
+                    "related_id": related_id,
+                    "notification_id": notification.id,
+                },
+            )
+        return notification
+    except SQLAlchemyError:
+        logger.exception("Notification persistence failed for user_id=%s", user_id)
+        return None
+    except Exception:
+        logger.exception("Notification delivery failed for user_id=%s", user_id)
+        return None
 
 
 def get_complaint_participants(complaint: Complaint) -> tuple[int, int]:

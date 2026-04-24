@@ -70,6 +70,8 @@ def create_booking(
         status=BookingStatus.pending,
     )
     db.add(booking)
+    db.flush()
+
     provider_user_id = get_provider_user_id(provider)
     if provider_user_id is not None:
         create_notification(
