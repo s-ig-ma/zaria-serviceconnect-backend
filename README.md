@@ -79,6 +79,24 @@ On first startup, it automatically:
 
 ---
 
+### Firebase Push Notifications on Railway
+
+The backend supports three Firebase credential options. For Railway, the simplest is:
+
+1. Open Firebase Console > Project settings > Service accounts.
+2. Generate a new private key and download the JSON file.
+3. In Railway, open your backend service > Variables.
+4. Add `FIREBASE_SERVICE_ACCOUNT_JSON`.
+5. Paste the entire JSON file contents as the value.
+6. Redeploy the backend service.
+
+Alternative options:
+
+- `FIREBASE_SERVICE_ACCOUNT_BASE64`: base64 encode the full service-account JSON and paste the encoded string.
+- `FIREBASE_SERVICE_ACCOUNT_PATH`: set this to a file path only when the JSON file exists on the server filesystem.
+
+---
+
 ## Default Admin Account
 
 | Field    | Value                              |

@@ -2,6 +2,7 @@
 # Central configuration for the application
 
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 
 class Settings(BaseSettings):
     # App Info
@@ -23,6 +24,19 @@ class Settings(BaseSettings):
 
     # Firebase Cloud Messaging
     FIREBASE_SERVICE_ACCOUNT_PATH: str | None = None
+    FIREBASE_SERVICE_ACCOUNT_JSON: str | None = None
+    FIREBASE_SERVICE_ACCOUNT_BASE64: str | None = None
+
+    @field_validator("DEBUG", mode="before")
+    @classmethod
+    def parse_debug_value(cls, value):
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"release", "prod", "production"}:
+                return False
+            if normalized in {"debug", "dev", "development"}:
+                return True
+        return value
 
     class Config:
         env_file = ".env"
