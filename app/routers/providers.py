@@ -102,6 +102,8 @@ def update_my_provider_profile(
     name: str | None = Form(None),
     phone: str | None = Form(None),
     location: str | None = Form(None),
+    latitude: float | None = Form(None),
+    longitude: float | None = Form(None),
     service_name: str | None = Form(None),
     category_id: int | None = Form(None),
     years_of_experience: int | None = Form(None),
@@ -118,6 +120,12 @@ def update_my_provider_profile(
     provider = db.query(Provider).filter(Provider.user_id == current_user.id).first()
     if not provider:
         raise HTTPException(status_code=404, detail="Provider profile not found.")
+    if (latitude is None) != (longitude is None):
+        raise HTTPException(status_code=400, detail="Latitude and longitude must be sent together.")
+    if latitude is not None and (latitude < -90 or latitude > 90):
+        raise HTTPException(status_code=400, detail="Invalid latitude.")
+    if longitude is not None and (longitude < -180 or longitude > 180):
+        raise HTTPException(status_code=400, detail="Invalid longitude.")
 
     if name is not None:
         current_user.name = name.strip()
@@ -127,6 +135,9 @@ def update_my_provider_profile(
         clean_location = location.strip() or None
         current_user.location = clean_location
         provider.location = clean_location
+    if latitude is not None and longitude is not None:
+        provider.latitude = latitude
+        provider.longitude = longitude
     if service_name is not None:
         provider.service_name = service_name.strip() or None
     if category_id is not None:
@@ -180,6 +191,10 @@ def update_my_location(
     provider = db.query(Provider).filter(Provider.user_id == current_user.id).first()
     if not provider:
         raise HTTPException(status_code=404, detail="Provider profile not found.")
+    if latitude < -90 or latitude > 90:
+        raise HTTPException(status_code=400, detail="Invalid latitude.")
+    if longitude < -180 or longitude > 180:
+        raise HTTPException(status_code=400, detail="Invalid longitude.")
     provider.latitude = latitude
     provider.longitude = longitude
     if location_text:

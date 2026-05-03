@@ -56,6 +56,8 @@ def register_provider(
     phone: str = Form(...),
     password: str = Form(...),
     location: str | None = Form(None),
+    latitude: float | None = Form(None),
+    longitude: float | None = Form(None),
     category_id: int | None = Form(None),
     service_name: str | None = Form(None),
     years_of_experience: int = Form(0),
@@ -89,6 +91,12 @@ def register_provider(
     clean_shop_address = shop_address.strip() if shop_address else None
     if has_shop_in_zaria and not clean_shop_address:
         raise HTTPException(status_code=400, detail="Please enter the shop address in Zaria.")
+    if (latitude is None) != (longitude is None):
+        raise HTTPException(status_code=400, detail="Latitude and longitude must be sent together.")
+    if latitude is not None and (latitude < -90 or latitude > 90):
+        raise HTTPException(status_code=400, detail="Invalid latitude.")
+    if longitude is not None and (longitude < -180 or longitude > 180):
+        raise HTTPException(status_code=400, detail="Invalid longitude.")
 
     safe_email = email.replace("@", "_at_").replace(".", "_")
     passport_photo_path = save_upload(passport_photo, "verification", f"{safe_email}_passport")
@@ -118,6 +126,8 @@ def register_provider(
         has_shop_in_zaria=has_shop_in_zaria,
         shop_address=clean_shop_address,
         location=location,
+        latitude=latitude,
+        longitude=longitude,
     )
     db.add(new_provider)
     db.commit()
