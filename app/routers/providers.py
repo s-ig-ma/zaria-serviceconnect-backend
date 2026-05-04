@@ -43,28 +43,34 @@ def _is_valid_coordinate_pair(latitude, longitude):
 
 
 def _sort_by_distance(providers, user_lat, user_lon):
+    """
+    Attach distance_km to each provider ORM object and sort by distance.
+
+    SQLAlchemy ORM objects support arbitrary attribute assignment via __dict__,
+    but Pydantic's `from_attributes` reads through the descriptor protocol.
+    We write directly into the instance __dict__ so Pydantic sees the value
+    reliably without triggering column descriptors.
+    """
     if _is_valid_coordinate_pair(user_lat, user_lon):
+        sort_values = []
         for provider in providers:
             if _is_valid_coordinate_pair(provider.latitude, provider.longitude):
-                raw_distance = haversine_distance_km(
+                distance = haversine_distance_km(
                     user_lat, user_lon, provider.latitude, provider.longitude
                 )
-                provider.distance_km = raw_distance
-                provider._distance_sort_value = raw_distance
+                # Write into __dict__ so Pydantic from_attributes picks it up
+                provider.__dict__["distance_km"] = distance
+                sort_values.append((provider, distance))
             else:
-                provider.distance_km = 99999.0
-                provider._distance_sort_value = 99999.0
-        providers.sort(key=lambda provider: getattr(provider, "_distance_sort_value", 99999.0))
-        for provider in providers:
-            if provider.distance_km == 99999.0:
-                provider.distance_km = None
-            if hasattr(provider, "_distance_sort_value"):
-                delattr(provider, "_distance_sort_value")
+                provider.__dict__["distance_km"] = None
+                sort_values.append((provider, 99999.0))
+        sort_values.sort(key=lambda pair: pair[1])
+        return [pair[0] for pair in sort_values]
     else:
         providers.sort(key=lambda provider: provider.average_rating, reverse=True)
         for provider in providers:
-            provider.distance_km = None
-    return providers
+            provider.__dict__["distance_km"] = None
+        return providers
 
 
 def _approved_provider_query(db: Session):
