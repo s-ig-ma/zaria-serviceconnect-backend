@@ -16,10 +16,9 @@ from app.utils.uploads import save_upload
 
 router = APIRouter(prefix="/providers", tags=["Providers"])
 
-EARTH_RADIUS_KM = 6371.0088
 
-
-def haversine_distance_km(lat1, lon1, lat2, lon2):
+def haversine_distance(lat1, lon1, lat2, lon2, should_round=True):
+    radius = 6371.0
     lat1_r = math.radians(lat1)
     lat2_r = math.radians(lat2)
     dlat = math.radians(lat2 - lat1)
@@ -28,49 +27,33 @@ def haversine_distance_km(lat1, lon1, lat2, lon2):
         math.sin(dlat / 2) ** 2
         + math.cos(lat1_r) * math.cos(lat2_r) * math.sin(dlon / 2) ** 2
     )
-    value = min(1.0, max(0.0, value))
-    return EARTH_RADIUS_KM * (2 * math.atan2(math.sqrt(value), math.sqrt(1 - value)))
-
-
-def _is_valid_coordinate_pair(latitude, longitude):
-    if latitude is None or longitude is None:
-        return False
-    if latitude < -90 or latitude > 90:
-        return False
-    if longitude < -180 or longitude > 180:
-        return False
-    return not (latitude == 0 and longitude == 0)
+    distance = radius * (2 * math.atan2(math.sqrt(value), math.sqrt(1 - value)))
+    return round(distance, 2) if should_round else distance
 
 
 def _sort_by_distance(providers, user_lat, user_lon):
-    """
-    Attach distance_km to each provider ORM object and sort by distance.
-
-    SQLAlchemy ORM objects support arbitrary attribute assignment via __dict__,
-    but Pydantic's `from_attributes` reads through the descriptor protocol.
-    We write directly into the instance __dict__ so Pydantic sees the value
-    reliably without triggering column descriptors.
-    """
-    if _is_valid_coordinate_pair(user_lat, user_lon):
-        sort_values = []
+    if user_lat is not None and user_lon is not None:
         for provider in providers:
-            if _is_valid_coordinate_pair(provider.latitude, provider.longitude):
-                distance = haversine_distance_km(
-                    user_lat, user_lon, provider.latitude, provider.longitude
+            if provider.latitude is not None and provider.longitude is not None:
+                raw_distance = haversine_distance(
+                    user_lat, user_lon, provider.latitude, provider.longitude, should_round=False
                 )
-                # Write into __dict__ so Pydantic from_attributes picks it up
-                provider.__dict__["distance_km"] = distance
-                sort_values.append((provider, distance))
+                provider.distance_km = round(raw_distance, 2)
+                provider._distance_sort_value = raw_distance
             else:
-                provider.__dict__["distance_km"] = None
-                sort_values.append((provider, 99999.0))
-        sort_values.sort(key=lambda pair: pair[1])
-        return [pair[0] for pair in sort_values]
+                provider.distance_km = 99999.0
+                provider._distance_sort_value = 99999.0
+        providers.sort(key=lambda provider: getattr(provider, "_distance_sort_value", 99999.0))
+        for provider in providers:
+            if provider.distance_km == 99999.0:
+                provider.distance_km = None
+            if hasattr(provider, "_distance_sort_value"):
+                delattr(provider, "_distance_sort_value")
     else:
         providers.sort(key=lambda provider: provider.average_rating, reverse=True)
         for provider in providers:
-            provider.__dict__["distance_km"] = None
-        return providers
+            provider.distance_km = None
+    return providers
 
 
 def _approved_provider_query(db: Session):
@@ -119,8 +102,6 @@ def update_my_provider_profile(
     name: str | None = Form(None),
     phone: str | None = Form(None),
     location: str | None = Form(None),
-    latitude: float | None = Form(None),
-    longitude: float | None = Form(None),
     service_name: str | None = Form(None),
     category_id: int | None = Form(None),
     years_of_experience: int | None = Form(None),
@@ -137,14 +118,6 @@ def update_my_provider_profile(
     provider = db.query(Provider).filter(Provider.user_id == current_user.id).first()
     if not provider:
         raise HTTPException(status_code=404, detail="Provider profile not found.")
-    if (latitude is None) != (longitude is None):
-        raise HTTPException(status_code=400, detail="Latitude and longitude must be sent together.")
-    if latitude is not None and (latitude < -90 or latitude > 90):
-        raise HTTPException(status_code=400, detail="Invalid latitude.")
-    if longitude is not None and (longitude < -180 or longitude > 180):
-        raise HTTPException(status_code=400, detail="Invalid longitude.")
-    if latitude == 0 and longitude == 0:
-        raise HTTPException(status_code=400, detail="Invalid GPS location.")
 
     if name is not None:
         current_user.name = name.strip()
@@ -154,9 +127,6 @@ def update_my_provider_profile(
         clean_location = location.strip() or None
         current_user.location = clean_location
         provider.location = clean_location
-    if latitude is not None and longitude is not None:
-        provider.latitude = latitude
-        provider.longitude = longitude
     if service_name is not None:
         provider.service_name = service_name.strip() or None
     if category_id is not None:
@@ -210,12 +180,6 @@ def update_my_location(
     provider = db.query(Provider).filter(Provider.user_id == current_user.id).first()
     if not provider:
         raise HTTPException(status_code=404, detail="Provider profile not found.")
-    if latitude < -90 or latitude > 90:
-        raise HTTPException(status_code=400, detail="Invalid latitude.")
-    if longitude < -180 or longitude > 180:
-        raise HTTPException(status_code=400, detail="Invalid longitude.")
-    if latitude == 0 and longitude == 0:
-        raise HTTPException(status_code=400, detail="Invalid GPS location.")
     provider.latitude = latitude
     provider.longitude = longitude
     if location_text:

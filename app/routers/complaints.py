@@ -7,7 +7,6 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_admin, get_current_user
 from app.models.models import (
     Booking,
-    BookingStatus,
     Complaint,
     ComplaintAction,
     ComplaintActionType,
@@ -66,16 +65,6 @@ def submit_complaint(
         raise HTTPException(
             status_code=400,
             detail="A complaint has already been submitted for this booking.",
-        )
-    if booking.status == BookingStatus.completed:
-        raise HTTPException(
-            status_code=400,
-            detail="This booking is completed. You can leave a review instead.",
-        )
-    if booking.status not in [BookingStatus.accepted, BookingStatus.completion_requested]:
-        raise HTTPException(
-            status_code=400,
-            detail="You can submit a complaint after the provider has accepted or requested completion.",
         )
 
     complaint = Complaint(
