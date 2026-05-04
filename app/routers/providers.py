@@ -27,14 +27,25 @@ def haversine_distance(lat1, lon1, lat2, lon2, should_round=True):
         math.sin(dlat / 2) ** 2
         + math.cos(lat1_r) * math.cos(lat2_r) * math.sin(dlon / 2) ** 2
     )
+    value = min(1.0, max(0.0, value))
     distance = radius * (2 * math.atan2(math.sqrt(value), math.sqrt(1 - value)))
     return round(distance, 2) if should_round else distance
 
 
+def _is_valid_coordinate_pair(latitude, longitude):
+    if latitude is None or longitude is None:
+        return False
+    if latitude < -90 or latitude > 90:
+        return False
+    if longitude < -180 or longitude > 180:
+        return False
+    return not (latitude == 0 and longitude == 0)
+
+
 def _sort_by_distance(providers, user_lat, user_lon):
-    if user_lat is not None and user_lon is not None:
+    if _is_valid_coordinate_pair(user_lat, user_lon):
         for provider in providers:
-            if provider.latitude is not None and provider.longitude is not None:
+            if _is_valid_coordinate_pair(provider.latitude, provider.longitude):
                 raw_distance = haversine_distance(
                     user_lat, user_lon, provider.latitude, provider.longitude, should_round=False
                 )
@@ -126,6 +137,8 @@ def update_my_provider_profile(
         raise HTTPException(status_code=400, detail="Invalid latitude.")
     if longitude is not None and (longitude < -180 or longitude > 180):
         raise HTTPException(status_code=400, detail="Invalid longitude.")
+    if latitude == 0 and longitude == 0:
+        raise HTTPException(status_code=400, detail="Invalid GPS location.")
 
     if name is not None:
         current_user.name = name.strip()
@@ -195,6 +208,8 @@ def update_my_location(
         raise HTTPException(status_code=400, detail="Invalid latitude.")
     if longitude < -180 or longitude > 180:
         raise HTTPException(status_code=400, detail="Invalid longitude.")
+    if latitude == 0 and longitude == 0:
+        raise HTTPException(status_code=400, detail="Invalid GPS location.")
     provider.latitude = latitude
     provider.longitude = longitude
     if location_text:

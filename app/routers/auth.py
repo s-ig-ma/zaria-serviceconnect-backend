@@ -97,6 +97,8 @@ def register_provider(
         raise HTTPException(status_code=400, detail="Invalid latitude.")
     if longitude is not None and (longitude < -180 or longitude > 180):
         raise HTTPException(status_code=400, detail="Invalid longitude.")
+    if latitude == 0 and longitude == 0:
+        raise HTTPException(status_code=400, detail="Invalid GPS location.")
 
     safe_email = email.replace("@", "_at_").replace(".", "_")
     passport_photo_path = save_upload(passport_photo, "verification", f"{safe_email}_passport")
