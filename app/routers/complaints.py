@@ -22,6 +22,7 @@ from app.schemas.communication_schemas import (
 )
 from app.schemas.complaint_schemas import ComplaintCreate, ComplaintOut, ComplaintResolve
 from app.utils.communication import create_notification, get_complaint_participants
+from app.utils.email import send_admin_activity_email
 
 router = APIRouter(prefix="/complaints", tags=["Complaints"])
 
@@ -102,6 +103,18 @@ def submit_complaint(
 
     db.commit()
     db.refresh(complaint)
+    send_admin_activity_email(
+        activity="New complaint",
+        details={
+            "complaint_id": complaint.id,
+            "booking_id": complaint.booking_id,
+            "resident": current_user.name,
+            "resident_email": current_user.email,
+            "provider_id": complaint.provider_id,
+            "message": complaint.message,
+            "status": complaint.status.value,
+        },
+    )
     return complaint
 
 

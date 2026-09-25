@@ -28,7 +28,7 @@ app = FastAPI(
     docs_url = "/docs",
     redoc_url= "/redoc",
     description="""
-## Zaria ServiceConnect API
+## Need Service Connect API
 
 ### Authentication
 Login at `/auth/login` to get a JWT token.

@@ -7,6 +7,7 @@ from app.core.dependencies import get_current_admin, get_current_user
 from app.models.models import Booking, BookingStatus, Provider, User
 from app.schemas.schemas import BookingCreate, BookingDetailOut, BookingStatusUpdate, MessageResponse
 from app.utils.communication import create_notification, get_provider_user_id
+from app.utils.email import send_admin_activity_email
 
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
@@ -84,6 +85,20 @@ def create_booking(
         )
     db.commit()
     db.refresh(booking)
+    send_admin_activity_email(
+        activity="New booking request",
+        details={
+            "booking_id": booking.id,
+            "resident": current_user.name,
+            "resident_email": current_user.email,
+            "provider_id": booking.provider_id,
+            "service_description": booking.service_description,
+            "scheduled_date": booking.scheduled_date,
+            "scheduled_time": booking.scheduled_time,
+            "service_address": booking.service_address,
+            "status": booking.status.value,
+        },
+    )
     return booking
 
 
@@ -232,6 +247,16 @@ def update_booking_status(
 
     db.commit()
     db.refresh(booking)
+    send_admin_activity_email(
+        activity="Booking status updated",
+        details={
+            "booking_id": booking.id,
+            "updated_by": current_user.name,
+            "updated_by_email": current_user.email,
+            "new_status": booking.status.value,
+            "provider_notes": booking.provider_notes,
+        },
+    )
     return booking
 
 

@@ -1,8 +1,8 @@
-# Zaria ServiceConnect — Phase 1: Backend API
+# Need Service Connect — Phase 1: Backend API
 
 ## Overview
 
-This is the FastAPI backend for **Zaria ServiceConnect**, a platform that connects residents in Zaria with verified home-service providers.
+This is the FastAPI backend for **Need Service Connect**, a platform that connects residents in Zaria with verified home-service providers.
 
 ---
 

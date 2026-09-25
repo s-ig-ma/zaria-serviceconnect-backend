@@ -9,6 +9,7 @@ from app.core.dependencies import get_current_user
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models.models import Category, Provider, User, UserRole
 from app.schemas.schemas import LoginRequest, MessageResponse, ResidentRegister, Token, UserOut
+from app.utils.email import send_admin_activity_email
 from app.utils.uploads import save_upload
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -46,6 +47,19 @@ def register_resident(data: ResidentRegister, db: Session = Depends(get_db)):
     )
     db.add(new_user)
     db.commit()
+    db.refresh(new_user)
+
+    send_admin_activity_email(
+        activity="New resident account",
+        details={
+            "user_id": new_user.id,
+            "name": new_user.name,
+            "email": new_user.email,
+            "phone": new_user.phone,
+            "location": new_user.location,
+            "home_address": new_user.home_address,
+        },
+    )
     return {"message": "Resident account created successfully.", "success": True}
 
 
@@ -121,6 +135,30 @@ def register_provider(
     )
     db.add(new_provider)
     db.commit()
+    db.refresh(new_user)
+    db.refresh(new_provider)
+
+    category_name = None
+    if category_id is not None:
+        category_name = db.query(Category).filter(Category.id == category_id).first().name
+
+    send_admin_activity_email(
+        activity="New provider account",
+        details={
+            "user_id": new_user.id,
+            "provider_id": new_provider.id,
+            "name": new_user.name,
+            "email": new_user.email,
+            "phone": new_user.phone,
+            "location": new_user.location,
+            "category": category_name,
+            "service_name": new_provider.service_name,
+            "years_of_experience": new_provider.years_of_experience,
+            "has_shop_in_zaria": new_provider.has_shop_in_zaria,
+            "shop_address": new_provider.shop_address,
+            "status": new_provider.status.value,
+        },
+    )
 
     return {"message": "Provider account created. Awaiting admin approval.", "success": True}
 

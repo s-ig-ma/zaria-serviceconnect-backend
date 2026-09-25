@@ -9,6 +9,7 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.models import Review, Booking, Provider, User, BookingStatus
 from app.schemas.schemas import ReviewCreate, ReviewOut
+from app.utils.email import send_admin_activity_email
 
 router = APIRouter(prefix="/reviews", tags=["Reviews"])
 
@@ -80,6 +81,18 @@ def create_review(
 
     db.commit()
     db.refresh(review)
+    send_admin_activity_email(
+        activity="New review",
+        details={
+            "review_id": review.id,
+            "booking_id": review.booking_id,
+            "resident": current_user.name,
+            "resident_email": current_user.email,
+            "provider_id": review.provider_id,
+            "rating": review.rating,
+            "comment": review.comment,
+        },
+    )
     return review
 
 

@@ -6,7 +6,7 @@ from pydantic import field_validator
 
 class Settings(BaseSettings):
     # App Info
-    APP_NAME: str = "Zaria ServiceConnect API"
+    APP_NAME: str = "Need Service Connect API"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
 
@@ -26,6 +26,16 @@ class Settings(BaseSettings):
     FIREBASE_SERVICE_ACCOUNT_PATH: str | None = None
     FIREBASE_SERVICE_ACCOUNT_JSON: str | None = None
     FIREBASE_SERVICE_ACCOUNT_BASE64: str | None = None
+
+    # Admin activity emails
+    ADMIN_ACTIVITY_EMAIL: str = "abdulahadmood@gmail.com"
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str = "adminzariaserviceconnect@gmail.com"
+    SMTP_PASSWORD: str | None = None
+    SMTP_FROM_EMAIL: str = "adminzariaserviceconnect@gmail.com"
+    SMTP_USE_TLS: bool = True
+    SMTP_TIMEOUT_SECONDS: int = 10
 
     @field_validator("DEBUG", mode="before")
     @classmethod
